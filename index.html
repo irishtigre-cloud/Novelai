@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" id="meta-theme" content="#000000">
+<title>Inkwell</title>
+<style>
+/* ─── RESET & BASE ──────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;font-family:var(--font);background:var(--bg);color:var(--text)}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;outline:none}
+input,textarea{font-family:inherit;outline:none;border:none;background:none;color:inherit;resize:none}
+textarea::placeholder,input::placeholder{color:var(--text3)}
+::-webkit-scrollbar{display:none}
+
+/* ─── THEME VARIABLES ───────────────────────────────────────────────────── */
+:root{
+  --bg:#0d0d0d;
+  --bg2:#161616;
+  --bg3:#1e1e1e;
+  --surface:#222;
+  --border:rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.12);
+  --text:rgba(240,240,240,0.95);
+  --text2:rgba(240,240,240,0.55);
+  --text3:rgba(240,240,240,0.28);
+  --accent:#60a5fa;
+  --accent-dim:rgba(96,165,250,0.12);
+  --accent-border:rgba(96,165,250,0.28);
+  --player-color:rgba(240,240,240,0.42);
+  --danger:rgba(248,113,113,0.85);
+  --danger-dim:rgba(248,113,113,0.1);
+  --danger-border:rgba(248,113,113,0.25);
+  --success:rgba(134,239,172,0.85);
+  --font:'Georgia',serif;
+  --font-size:16px;
+  --line-height:1.75;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --safe-top:env(safe-area-inset-top,0px);
+}
+
+/* ─── LAYOUT ────────────────────────────────────────────────────────────── */
+#app{height:100%;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.screen{flex:1;display:none;flex-direction:column;overflow:hidden;height:100%}
+.screen.active{display:flex}
+
+/* ─── TYPOGRAPHY ────────────────────────────────────────────────────────── */
+.txt-sec{font-size:.62em;opacity:.38;font-weight:700;letter-spacing:.1em;text-transform:uppercase;display:block;margin:10px 0 5px}
+.txt-dim{color:var(--text2);font-size:.82em}
+.txt-xs{font-size:.72em;color:var(--text3)}
+
+/* ─── BUTTONS ────────────────────────────────────────────────────────────── */
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 16px;border-radius:10px;font-size:.85em;font-weight:600;transition:opacity .1s}
+.btn:active{opacity:.7}
+.btn-accent{background:var(--accent-dim);border:1px solid var(--accent-border);color:var(--accent)}
+.btn-surface{background:var(--surface);border:1px solid var(--border);color:var(--text2)}
+.btn-danger{background:var(--danger-dim);border:1px solid var(--danger-border);color:var(--danger)}
+.btn-full{width:100%}
+.btn-icon{width:40px;height:40px;padding:0;border-radius:10px;border:1px solid var(--border);background:var(--surface);font-size:1.1em}
+
+/* ─── CHIPS ──────────────────────────────────────────────────────────────── */
+.chip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:.7em;border:1px solid var(--border);background:var(--surface);color:var(--text2)}
+.chip.active{background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent)}
+
+/* ─── CARDS ──────────────────────────────────────────────────────────────── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px}
+
+/* ─── INPUT ──────────────────────────────────────────────────────────────── */
+.field-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+.field-wrap:focus-within{border-color:var(--accent-border)}
+.field-wrap input,.field-wrap textarea{width:100%;color:var(--text);background:none;font-size:.9em}
+
+/* ─── BACKDROP ───────────────────────────────────────────────────────────── */
+#backdrop{position:fixed;inset:0;background:rgba(0,0,0,0);pointer-events:none;z-index:40;transition:background .25s}
+#backdrop.show{background:rgba(0,0,0,.65);pointer-events:all}
+
+/* ─── NAV DRAWER ─────────────────────────────────────────────────────────── */
+#drawer{
+  position:fixed;top:0;left:-280px;width:280px;height:100%;
+  background:var(--bg2);border-right:1px solid var(--border);
+  z-index:50;transition:transform .28s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;
+  padding-top:calc(var(--safe-top) + 16px);
+  padding-bottom:calc(var(--safe-bottom) + 16px);
+}
+#drawer.open{transform:translateX(280px)}
+.drawer-head{padding:0 16px 16px;border-bottom:1px solid var(--border);margin-bottom:8px}
+.drawer-title{font-size:1.3em;font-weight:700;color:var(--text)}
+.drawer-sub{font-size:.72em;color:var(--text3);margin-top:2px}
+.drawer-body{flex:1;overflow-y:auto;padding:0 8px}
+.drawer-item{
+  display:flex;align-items:center;gap:12px;padding:11px 10px;border-radius:9px;
+  font-size:.88em;color:var(--text2);transition:background .1s;cursor:pointer;
+}
+.drawer-item:active{background:var(--surface)}
+.drawer-item .di-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:1em;border-radius:7px;background:var(--surface);border:1px solid var(--border)}
+.drawer-section{padding:0 10px;margin-top:8px}
+
+/* ─── BOTTOM SHEETS ──────────────────────────────────────────────────────── */
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;
+  background:var(--bg2);border-top:1px solid var(--border);
+  border-radius:18px 18px 0 0;
+  z-index:60;
+  transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
+  max-height:92vh;display:flex;flex-direction:column;
+  padding-bottom:calc(var(--safe-bottom) + 8px);
+}
+.sheet.open{transform:translateY(0)}
+.sheet-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:10px auto 4px}
+.sheet-title{padding:8px 16px 12px;font-weight:700;font-size:.95em;border-bottom:1px solid var(--border)}
+.sheet-body{flex:1;overflow-y:auto;padding:12px 16px}
+.sheet-footer{padding:8px 16px 0;display:flex;gap:8px}
+
+/* ─── SETUP SCREEN ───────────────────────────────────────────────────────── */
+#screen-setup{
+  align-items:center;justify-content:center;padding:24px;
+  padding-top:calc(var(--safe-top) + 24px);
+  background:var(--bg);
+}
+.setup-logo{font-size:3em;margin-bottom:8px;text-align:center}
+.setup-name{font-size:1.6em;font-weight:700;text-align:center;margin-bottom:4px}
+.setup-tagline{font-size:.85em;color:var(--text2);text-align:center;margin-bottom:32px}
+.setup-card{width:100%;max-width:380px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:20px}
+.setup-label{font-size:.78em;color:var(--text2);margin-bottom:6px;display:block}
+.setup-hint{font-size:.72em;color:var(--text3);margin-top:8px;line-height:1.5}
+.setup-key-field{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;width:100%;font-size:.88em;color:var(--text);font-family:monospace}
+
+/* ─── HOME SCREEN ────────────────────────────────────────────────────────── */
+#screen-home{background:var(--bg)}
+.home-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:calc(var(--safe-top) + 12px) 16px 12px;
+  border-bottom:1px solid var(--border);
+  background:var(--bg);flex-shrink:0;
+}
+.home-bar-title{font-size:1.15em;font-weight:700}
+.home-list{flex:1;overflow-y:auto;padding:12px}
+.story-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:13px;
+  padding:14px;margin-bottom:10px;cursor:pointer;
+  transition:border-color .15s;position:relative;
+  display:flex;flex-direction:column;gap:4px;
+}
+.story-card:active{border-color:var(--accent-border)}
+.story-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.story-card-title{font-size:.95em;font-weight:600;flex:1;line-height:1.3}
+.story-card-genre{font-size:.65em;padding:2px 7px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--text3);white-space:nowrap;flex-shrink:0}
+.story-card-meta{font-size:.72em;color:var(--text3)}
+.story-card-preview{font-size:.78em;color:var(--text2);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.story-card-actions{display:flex;gap:6px;margin-top:6px;padding-top:8px;border-top:1px solid var(--border)}
+.story-card-actions button{flex:1;padding:5px;font-size:.72em;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--text2)}
+.home-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text3);font-size:.88em}
+.home-empty-icon{font-size:2.5em}
+
+/* ─── STORY SCREEN ───────────────────────────────────────────────────────── */
+#screen-story{background:var(--bg);position:relative}
+#story-topbar{
+  display:flex;align-items:center;gap:8px;
+  padding:calc(var(--safe-top) + 8px) 10px 8px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;background:var(--bg);
+}
+#story-title-display{flex:1;font-size:.88em;font-weight:600;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+#story-scroll{flex:1;overflow-y:auto;padding:16px 14px 8px;font-size:var(--font-size);line-height:var(--line-height)}
+.turn{margin-bottom:1.4em;position:relative}
+.turn-user{color:var(--player-color);font-style:italic}
+.turn-user::before{content:'› ';opacity:.6}
+.turn-ai{color:var(--text)}
+.turn-streaming::after{content:'▌';animation:blink .7s infinite;color:var(--accent);margin-left:1px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.scroll-bottom-btn{
+  position:absolute;bottom:calc(var(--input-height,160px) + 12px);right:12px;
+  width:36px;height:36px;border-radius:50%;
+  background:var(--surface);border:1px solid var(--border);
+  font-size:.9em;display:none;align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.4);
+}
+.scroll-bottom-btn.show{display:flex}
+
+/* ─── INPUT AREA ─────────────────────────────────────────────────────────── */
+#input-area{
+  flex-shrink:0;background:var(--bg);
+  border-top:1px solid var(--border);
+  padding-bottom:var(--safe-bottom);
+}
+#quick-actions{
+  display:none;flex-wrap:wrap;gap:6px;padding:8px 10px 4px;
+  border-bottom:1px solid var(--border);
+}
+#quick-actions.open{display:flex}
+.qa-btn{
+  display:flex;align-items:center;gap:4px;padding:5px 10px;
+  border-radius:20px;font-size:.72em;border:1px solid var(--border);
+  background:var(--surface);color:var(--text2);
+}
+.qa-btn:active{background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent)}
+#input-bar{display:flex;align-items:flex-end;gap:6px;padding:8px 10px}
+#mode-chip{
+  flex-shrink:0;display:flex;align-items:center;gap:4px;
+  padding:6px 9px;border-radius:20px;border:1px solid var(--border);
+  background:var(--surface);font-size:.72em;color:var(--text2);
+  white-space:nowrap;cursor:pointer;
+}
+#mode-chip:active{border-color:var(--accent-border);color:var(--accent)}
+#story-input{
+  flex:1;font-size:.9em;line-height:1.45;max-height:88px;overflow-y:auto;
+  color:var(--text);background:var(--bg2);
+  border:1px solid var(--border);border-radius:10px;
+  padding:8px 10px;
+  transition:border-color .15s;
+}
+#story-input:focus{border-color:var(--accent-border)}
+#story-input:empty::before{content:attr(data-placeholder);color:var(--text3)}
+#input-btns{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+#btn-send{
+  width:38px;height:38px;border-radius:10px;
+  background:var(--accent-dim);border:1px solid var(--accent-border);
+  font-size:1em;color:var(--accent);display:flex;align-items:center;justify-content:center;
+}
+#btn-send:active{opacity:.7}
+#btn-send.generating{background:var(--danger-dim);border-color:var(--danger-border);color:var(--danger)}
+#btn-send.disabled{opacity:.3;pointer-events:none}
+#input-aux{display:flex;align-items:center;gap:4px;padding:0 10px 4px}
+.aux-btn{
+  display:flex;align-items:center;gap:3px;padding:3px 8px;border-radius:7px;
+  font-size:.68em;color:var(--text3);border:1px solid var(--border);background:var(--surface);
+}
+.aux-btn:active{opacity:.6}
+.aux-spacer{flex:1}
+
+/* ─── LOREBOOK ────────────────────────────────────────────────────────────── */
+.lb-category{margin-bottom:16px}
+.lb-cat-title{font-size:.65em;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.lb-cat-icon{font-size:1em}
+.lb-entry{
+  display:flex;align-items:flex-start;gap:10px;padding:9px 10px;
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;
+  margin-bottom:6px;cursor:pointer;
+}
+.lb-entry:active{border-color:var(--accent-border)}
+.lb-entry-main{flex:1;min-width:0}
+.lb-entry-name{font-size:.82em;font-weight:600;margin-bottom:2px}
+.lb-entry-keys{font-size:.66em;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-entry-toggle{flex-shrink:0;width:28px;height:16px;border-radius:8px;background:var(--border2);position:relative;transition:background .2s}
+.lb-entry-toggle.on{background:var(--accent)}
+.lb-entry-toggle::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:white;transition:transform .2s}
+.lb-entry-toggle.on::after{transform:translateX(12px)}
+
+/* ─── CONTEXT INDICATOR ──────────────────────────────────────────────────── */
+#ctx-bar{height:2px;background:var(--border);flex-shrink:0;overflow:hidden}
+#ctx-fill{height:100%;width:0;background:var(--accent);transition:width .5s;border-radius:1px}
+#ctx-fill.warn{background:#facc15}
+#ctx-fill.full{background:var(--danger)}
+
+/* ─── THEME PALETTE ──────────────────────────────────────────────────────── */
+.palette-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px}
+.palette-swatch{
+  aspect-ratio:1;border-radius:8px;cursor:pointer;border:2px solid transparent;
+  transition:transform .1s;
+}
+.palette-swatch:active{transform:scale(.9)}
+.palette-swatch.selected{border-color:white}
+
+/* ─── LOREBOOK EDIT FORM ─────────────────────────────────────────────────── */
+.form-row{margin-bottom:12px}
+.form-label{font-size:.72em;color:var(--text2);margin-bottom:5px;display:block}
+.form-input{
+  width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;font-size:.85em;color:var(--text);font-family:inherit;
+}
+.form-input:focus{border-color:var(--accent-border)}
+.form-textarea{min-height:80px;resize:none}
+.cat-select-grid{display:flex;flex-wrap:wrap;gap:5px}
+.cat-btn{
+  padding:4px 9px;border-radius:7px;font-size:.72em;
+  border:1px solid var(--border);background:var(--surface);color:var(--text2);
+}
+.cat-btn.selected{background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent)}
+
+/* ─── LOADING STATE ──────────────────────────────────────────────────────── */
+.pulsing{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ─── TOAST ──────────────────────────────────────────────────────────────── */
+#toast{
+  position:fixed;bottom:calc(var(--safe-bottom) + 80px);left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  padding:8px 16px;font-size:.8em;color:var(--text2);white-space:nowrap;
+  opacity:0;transition:opacity .2s,transform .2s;z-index:100;pointer-events:none;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ─── SCROLLBAR HELPER ───────────────────────────────────────────────────── */
+.scrollable{overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* ─── MODE COLORS ────────────────────────────────────────────────────────── */
+.mode-explore{--mode-color:#60a5fa}
+.mode-combat{--mode-color:#f87171}
+.mode-talk{--mode-color:#86efac}
+.mode-travel{--mode-color:#facc15}
+.mode-rest{--mode-color:#a78bfa}
+.mode-stealth{--mode-color:#94a3b8}
+.mode-search{--mode-color:#67e8f9}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ─── BACKDROP ──────────────────────────────────────────────────────────── -->
+<div id="backdrop"></div>
+
+<!-- ─── TOAST ─────────────────────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<!-- ─── NAV DRAWER ────────────────────────────────────────────────────────── -->
+<div id="drawer">
+  <div class="drawer-head">
+    <div class="drawer-title">✒️ Inkwell</div>
+    <div class="drawer-sub" id="drawer-story-name">No story open</div>
+  </div>
+  <div class="drawer-body scrollable">
+    <div class="drawer-section"><span class="txt-sec">Story</span></div>
+    <div class="drawer-item" onclick="openSheet('sheet-memory')">
+      <div class="di-icon">🧠</div><span>Memory</span>
+    </div>
+    <div class="drawer-item" onclick="openSheet('sheet-an')">
+      <div class="di-icon">📝</div><span>Author's Note</span>
+    </div>
+    <div class="drawer-item" onclick="openSheet('sheet-lorebook')">
+      <div class="di-icon">📚</div><span>Lorebook</span>
+    </div>
+    <div class="drawer-item" onclick="openSheet('sheet-story-settings')">
+      <div class="di-icon">⚙️</div><span>Story Settings</span>
+    </div>
+    <div class="drawer-section"><span class="txt-sec">App</span></div>
+    <div class="drawer-item" onclick="openSheet('sheet-app-settings')">
+      <div class="di-icon">🎨</div><span>Appearance</span>
+    </div>
+    <div class="drawer-item" onclick="openSheet('sheet-export')">
+      <div class="di-icon">💾</div><span>Export Story</span>
+    </div>
+    <div class="drawer-item" onclick="goHome()">
+      <div class="di-icon">📖</div><span>All Stories</span>
+    </div>
+    <div class="drawer-item" onclick="showApiKeySheet()">
+      <div class="di-icon">🔑</div><span>API Key</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     SCREEN: SETUP
+══════════════════════════════════════════════════════════════════════════ -->
+<div id="screen-setup" class="screen">
+  <div class="setup-logo">✒️</div>
+  <div class="setup-name">Inkwell</div>
+  <div class="setup-tagline">Text adventure · AI-powered · Mobile-first</div>
+  <div class="setup-card">
+    <span class="setup-label">NovelAI API Key</span>
+    <input id="setup-key-input" class="setup-key-field" type="password"
+      placeholder="pst-..." autocomplete="off" spellcheck="false">
+    <div class="setup-hint">
+      Find your key at novelai.net → Account → API Key.<br>
+      Stored only on this device, never sent anywhere else.
+    </div>
+    <button class="btn btn-accent btn-full" style="margin-top:16px" onclick="saveApiKey()">
+      Get Started →
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     SCREEN: HOME
+══════════════════════════════════════════════════════════════════════════ -->
+<div id="screen-home" class="screen">
+  <div class="home-bar">
+    <div class="home-bar-title">✒️ Inkwell</div>
+    <button class="btn btn-accent" style="padding:7px 14px;font-size:.8em" onclick="openSheet('sheet-new-story')">
+      + New Story
+    </button>
+  </div>
+  <div id="home-list" class="home-list scrollable"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     SCREEN: STORY
+══════════════════════════════════════════════════════════════════════════ -->
+<div id="screen-story" class="screen">
+  <div id="story-topbar">
+    <button class="btn-icon" onclick="openDrawer()">☰</button>
+    <div id="story-title-display">—</div>
+    <button class="btn-icon" onclick="openSheet('sheet-story-settings')">⚙️</button>
+  </div>
+  <div id="ctx-bar"><div id="ctx-fill"></div></div>
+
+  <div id="story-scroll" class="scrollable">
+    <div id="story-content"></div>
+    <div id="streaming-turn" class="turn turn-ai" style="display:none"></div>
+  </div>
+
+  <button class="scroll-bottom-btn" id="scroll-bottom-btn" onclick="scrollToBottom()">↓</button>
+
+  <div id="input-area">
+    <div id="quick-actions">
+      <button class="qa-btn" onclick="quickAction('I search my immediate surroundings carefully.')">🔍 Search</button>
+      <button class="qa-btn" onclick="quickAction('I look around, taking in everything nearby.')">👁 Look</button>
+      <button class="qa-btn" onclick="quickAction('I listen carefully for any sounds or movement.')">👂 Listen</button>
+      <button class="qa-btn" onclick="quickAction('I approach and attempt to start a conversation.')">💬 Talk</button>
+      <button class="qa-btn" onclick="quickAction('I take a moment to rest and recover.')">💤 Rest</button>
+      <button class="qa-btn" onclick="quickAction('I try to escape the situation.')">🏃 Flee</button>
+    </div>
+    <div id="input-bar">
+      <div id="mode-chip" onclick="cycleMode()">
+        <span id="mode-icon">🧭</span>
+        <span id="mode-label">Explore</span>
+      </div>
+      <div id="story-input" contenteditable="true" data-placeholder="What do you do..."
+        oninput="onInputChange()" onkeydown="onInputKey(event)"></div>
+      <div id="input-btns">
+        <button id="btn-send" onclick="handleSend()">▶</button>
+        <button class="btn-icon" id="btn-qa" onclick="toggleQuickActions()" title="Quick actions" style="font-size:.8em">⊕</button>
+      </div>
+    </div>
+    <div id="input-aux">
+      <button class="aux-btn" onclick="undoTurn()" id="btn-undo">↩ Undo</button>
+      <button class="aux-btn" onclick="retryLast()" id="btn-retry">↺ Retry</button>
+      <div class="aux-spacer"></div>
+      <span id="token-hint" class="txt-xs"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     BOTTOM SHEETS
+══════════════════════════════════════════════════════════════════════════ -->
+
+<!-- Long-press action menu -->
+<div class="sheet" id="sheet-action">
+  <div class="sheet-handle"></div>
+  <div class="sheet-body" style="padding:8px 16px">
+    <button class="btn btn-surface btn-full" style="margin-bottom:8px;justify-content:flex-start" onclick="actionEdit()">✏️ &nbsp;Edit this turn</button>
+    <button class="btn btn-surface btn-full" style="margin-bottom:8px;justify-content:flex-start" onclick="actionRetry()">↺ &nbsp;Retry from here</button>
+    <button class="btn btn-surface btn-full" style="margin-bottom:8px;justify-content:flex-start" onclick="actionCopy()">📋 &nbsp;Copy text</button>
+    <button class="btn btn-danger btn-full" style="justify-content:flex-start" onclick="actionDelete()">🗑 &nbsp;Delete this turn</button>
+  </div>
+</div>
+
+<!-- Edit turn -->
+<div class="sheet" id="sheet-edit">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Edit Turn</div>
+  <div class="sheet-body">
+    <textarea id="edit-textarea" class="form-input form-textarea" style="min-height:160px" placeholder="Turn text..."></textarea>
+  </div>
+  <div class="sheet-footer">
+    <button class="btn btn-surface" style="flex:1" onclick="closeSheet()">Cancel</button>
+    <button class="btn btn-accent" style="flex:2" onclick="saveEdit()">Save Changes</button>
+  </div>
+</div>
+
+<!-- Memory -->
+<div class="sheet" id="sheet-memory">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">🧠 Memory</div>
+  <div class="sheet-body">
+    <p class="txt-dim" style="margin-bottom:10px;font-size:.78em;line-height:1.5">
+      Injected at the start of every generation. Use for persistent world facts, character names, rules.
+    </p>
+    <textarea id="memory-textarea" class="form-input form-textarea" style="min-height:180px"
+      placeholder="e.g. The year is 3421. You play as Commander Saren, a disgraced Alliance officer..."></textarea>
+  </div>
+  <div class="sheet-footer">
+    <button class="btn btn-surface" style="flex:1" onclick="closeSheet()">Cancel</button>
+    <button class="btn btn-accent" style="flex:2" onclick="saveMemory()">Save</button>
+  </div>
+</div>
+
+<!-- Author's Note -->
+<div class="sheet" id="sheet-an">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">📝 Author's Note</div>
+  <div class="sheet-body">
+    <p class="txt-dim" style="margin-bottom:10px;font-size:.78em;line-height:1.5">
+      Injected near the end of context — strong influence on tone and style of the immediate generation.
+    </p>
+    <textarea id="an-textarea" class="form-input form-textarea" style="min-height:160px"
+      placeholder="e.g. Write with gritty, cinematic prose. Short sentences under pressure. The world is dangerous."></textarea>
+    <div class="form-row" style="margin-top:12px">
+      <span class="form-label">Insertion distance (turns from end)</span>
+      <input id="an-depth-input" class="form-input" type="number" min="1" max="20" value="4">
+    </div>
+  </div>
+  <div class="sheet-footer">
+    <button class="btn btn-surface" style="flex:1" onclick="closeSheet()">Cancel</button>
+    <button class="btn btn-accent" style="flex:2" onclick="saveAN()">Save</button>
+  </div>
+</div>
+
+<!-- Lorebook -->
+<div class="sheet" id="sheet-lorebook" style="max-height:96vh">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>📚 Lorebook</span>
+    <button class="btn btn-accent" style="padding:5px 12px;font-size:.76em" onclick="openNewLbEntry()">+ Add</button>
+  </div>
+  <div class="sheet-body scrollable" id="lorebook-body"></div>
+</div>
+
+<!-- Lorebook entry editor -->
+<div class="sheet" id="sheet-lb-edit" style="max-height:96vh">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="lb-edit-title">New Entry</div>
+  <div class="sheet-body scrollable">
+    <input type="hidden" id="lb-edit-id">
+    <div class="form-row">
+      <span class="form-label">Name / Title</span>
+      <input id="lb-name" class="form-input" placeholder="e.g. The Citadel, Commander Shepherd...">
+    </div>
+    <div class="form-row">
+      <span class="form-label">Category</span>
+      <div class="cat-select-grid" id="lb-cat-grid"></div>
+    </div>
+    <div class="form-row">
+      <span class="form-label">Keywords (comma-separated)</span>
+      <input id="lb-keywords" class="form-input" placeholder="citadel, council, station...">
+    </div>
+    <div class="form-row">
+      <span class="form-label">Entry Content</span>
+      <textarea id="lb-content" class="form-input form-textarea" style="min-height:120px"
+        placeholder="Description, lore, details the AI should know when this entry triggers..."></textarea>
+    </div>
+  </div>
+  <div class="sheet-footer">
+    <button class="btn btn-danger" style="flex:1" id="lb-delete-btn" onclick="deleteLbEntry()">Delete</button>
+    <button class="btn btn-surface" style="flex:1" onclick="openSheet('sheet-lorebook')">Cancel</button>
+    <button class="btn btn-accent" style="flex:2" onclick="saveLbEntry()">Save</button>
+  </div>
+</div>
+
+<!-- Story Settings -->
+<div class="sheet" id="sheet-story-settings">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">⚙️ Story Settings</div>
+  <div class="sheet-body">
+    <div class="form-row">
+      <span class="form-label">Title</span>
+      <input id="ss-title" class="form-input" placeholder="Story title...">
+    </div>
+    <div class="form-row">
+      <span class="form-label">Genre tag</span>
+      <div style="display:flex;flex-wrap:wrap;gap:5px" id="ss-genre-grid"></div>
+    </div>
+    <div class="form-row">
+      <span class="form-label">Model</span>
+      <div style="display:flex;gap:6px" id="ss-model-grid"></div>
+    </div>
+    <div class="form-row">
+      <span class="form-label">Temperature <span id="ss-temp-val" style="color:var(--accent)">1.0</span></span>
+      <input id="ss-temp" class="form-input" type="range" min="0.1" max="2" step="0.05" value="1"
+        oninput="document.getElementById('ss-temp-val').textContent=parseFloat(this.value).toFixed(2)"
+        style="padding:0;border:none;background:none;accent-color:var(--accent)">
+    </div>
+    <div class="form-row">
+      <span class="form-label">Response Length (tokens) <span id="ss-tokens-val" style="color:var(--accent)">150</span></span>
+      <input id="ss-tokens" class="form-input" type="range" min="50" max="600" step="10" value="150"
+        oninput="document.getElementById('ss-tokens-val').textContent=this.value"
+        style="padding:0;border:none;background:none;accent-color:var(--accent)">
+    </div>
+    <div class="form-row">
+      <span class="form-label">Repetition Penalty <span id="ss-rep-val" style="color:var(--accent)">2.8</span></span>
+      <input id="ss-rep" class="form-input" type="range" min="1" max="4" step="0.1" value="2.8"
+        oninput="document.getElementById('ss-rep-val').textContent=parseFloat(this.value).toFixed(1)"
+        style="padding:0;border:none;background:none;accent-color:var(--accent)">
+    </div>
+    <div class="form-row">
+      <span class="form-label">Context Size (tokens)</span>
+      <div style="display:flex;gap:5px" id="ss-ctx-grid"></div>
+    </div>
+  </div>
+  <div class="sheet-footer">
+    <button class="btn btn-surface" style="flex:1" onclick="closeSheet()">Cancel</button>
+    <button class="btn btn-accent" style="flex:2" onclick="saveStorySettings()">Save</button>
+  </div>
+</div>
+
+<!-- App Settings (Appearance) -->
+<div class="sheet" id="sheet-app-settings">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">🎨 Appearance</div>
+  <div class="sheet-body scrollable">
+    <span class="txt-sec">Background</span>
+    <div class="palette-grid" id="bg-palette"></div>
+    <span class="txt-sec">Accent Color</span>
+    <div class="palette-grid" id="accent-palette"></div>
+    <span class="txt-sec">Font Family</span>
+    <div style="display:flex;gap:6px;margin-bottom:14px" id="font-family-grid"></div>
+    <span class="txt-sec">Font Size</span>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <button class="btn btn-surface" style="padding:6px 14px" onclick="adjustFontSize(-1)">A−</button>
+      <span id="font-size-display" style="flex:1;text-align:center;font-size:.85em;color:var(--text2)">16px</span>
+      <button class="btn btn-surface" style="padding:6px 14px" onclick="adjustFontSize(1)">A+</button>
+    </div>
+    <span class="txt-sec">Line Height</span>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <button class="btn btn-surface" style="padding:6px 14px" onclick="adjustLineHeight(-0.1)">−</button>
+      <span id="line-height-display" style="flex:1;text-align:center;font-size:.85em;color:var(--text2)">1.75</span>
+      <button class="btn btn-surface" style="padding:6px 14px" onclick="adjustLineHeight(0.1)">+</button>
+    </div>
+    <span class="txt-sec">Options</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
+      <span style="font-size:.85em;color:var(--text2)">Haptic feedback</span>
+      <button id="haptic-toggle" class="chip active" onclick="toggleHaptics()">ON</button>
+    </div>
+  </div>
+  <div class="sheet-footer">
+    <button class="btn btn-accent btn-full" onclick="closeSheet()">Done</button>
+  </div>
+</div>
+
+<!-- New Story -->
+<div class="sheet" id="sheet-new-story">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">New Story</div>
+  <div class="sheet-body">
+    <div class="form-row">
+      <span class="form-label">Title</span>
+      <input id="ns-title" class="form-input" placeholder="Story title...">
+    </div>
+    <div class="form-row">
+      <span class="form-label">Genre</span>
+      <div style="display:flex;flex-wrap:wrap;gap:5px" id="ns-genre-grid"></div>
+    </div>
+    <div class="form-row">
+      <span class="form-label">Opening Scene (optional)</span>
+      <textarea id="ns-opening" class="form-input form-textarea" style="min-height:100px"
+        placeholder="Paste or type an opening scene to begin from, or leave blank..."></textarea>
+    </div>
+  </div>
+  <div class="sheet-footer">
+    <button class="btn btn-surface" style="flex:1" onclick="closeSheet()">Cancel</button>
+    <button class="btn btn-accent" style="flex:2" onclick="createStory()">Create Story</button>
+  </div>
+</div>
+
+<!-- Export -->
+<div class="sheet" id="sheet-export">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">💾 Export Story</div>
+  <div class="sheet-body">
+    <p class="txt-dim" style="margin-bottom:16px;font-size:.82em;line-height:1.5">
+      Export your story to save or share it.
+    </p>
+    <button class="btn btn-surface btn-full" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="exportStory('txt')">
+      <span style="font-size:1.2em">📄</span>
+      <div style="text-align:left">
+        <div style="font-weight:600">Plain Text (.txt)</div>
+        <div class="txt-xs" style="margin-top:2px">Readable story text</div>
+      </div>
+    </button>
+    <button class="btn btn-surface btn-full" style="justify-content:flex-start;gap:12px" onclick="exportStory('json')">
+      <span style="font-size:1.2em">🗂</span>
+      <div style="text-align:left">
+        <div style="font-weight:600">Full Backup (.json)</div>
+        <div class="txt-xs" style="margin-top:2px">Includes lorebook, settings, all data</div>
+      </div>
+    </button>
+  </div>
+</div>
+
+<!-- API Key (edit) -->
+<div class="sheet" id="sheet-apikey">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">🔑 API Key</div>
+  <div class="sheet-body">
+    <span class="form-label">NovelAI API Key</span>
+    <input id="apikey-input" class="form-input" type="password" placeholder="pst-..." autocomplete="off" spellcheck="false" style="margin-bottom:8px">
+    <p class="txt-xs" style="line-height:1.5">Stored only in your browser's local storage. Never transmitted anywhere except directly to api.novelai.net.</p>
+  </div>
+  <div class="sheet-footer">
+    <button class="btn btn-surface" style="flex:1" onclick="closeSheet()">Cancel</button>
+    <button class="btn btn-accent" style="flex:2" onclick="updateApiKey()">Save Key</button>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<script>
+// ════════════════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════════════════
+
+const DB_KEY = 'inkwell_v1';
+
+let state = {
+  apiKey: '',
+  stories: [],
+  currentStoryId: null,
+  settings: {
+    bgColor: '#0d0d0d',
+    accentColor: '#60a5fa',
+    fontFamily: 'serif',
+    fontSize: 16,
+    lineHeight: 1.75,
+    haptics: true,
+  }
+};
+
+let currentStory = null;   // reference into state.stories
+let generating = false;
+let abortController = null;   // kept for API compat but unused
+let stopFlag = false;
+let activeReader = null;
+let activeTurnId = null;   // for long-press menu
+let editingTurnId = null;
+let editingLbId = null;
+let selectedLbCat = 'character';
+let selectedGenre = 'fantasy';
+let selectedNsGenre = 'fantasy';
+let currentMode = 'explore';
+let quickActionsOpen = false;
+
+const MODES = [
+  { id:'explore',  icon:'🧭', label:'Explore' },
+  { id:'combat',   icon:'⚔️', label:'Combat'  },
+  { id:'talk',     icon:'💬', label:'Talk'    },
+  { id:'travel',   icon:'🚶', label:'Travel'  },
+  { id:'rest',     icon:'💤', label:'Rest'    },
+  { id:'stealth',  icon:'👁', label:'Stealth' },
+  { id:'search',   icon:'🔍', label:'Search'  },
+];
+
+const GENRES = [
+  { id:'fantasy',    icon:'⚔️',  label:'Fantasy'    },
+  { id:'scifi',      icon:'🚀',  label:'Sci-Fi'     },
+  { id:'horror',     icon:'👁',  label:'Horror'     },
+  { id:'modern',     icon:'🌆',  label:'Modern'     },
+  { id:'historical', icon:'🏛',  label:'Historical' },
+  { id:'custom',     icon:'✨',  label:'Custom'     },
+];
+
+const MODELS = [
+  { id:'kayra-v1',  label:'Kayra',  desc:'Best quality' },
+  { id:'clio-v1',   label:'Clio',   desc:'Fast'         },
+  { id:'erato-v1',  label:'Erato',  desc:'Newest'       },
+];
+
+const LB_CATEGORIES = [
+  { id:'character', icon:'🧑', label:'Characters' },
+  { id:'location',  icon:'🏛', label:'Locations'  },
+  { id:'faction',   icon:'⚑',  label:'Factions'   },
+  { id:'item',      icon:'📦', label:'Items'       },
+  { id:'creature',  icon:'🐉', label:'Creatures'   },
+  { id:'event',     icon:'⚡', label:'Events'      },
+  { id:'other',     icon:'📄', label:'Other'       },
+];
+
+const BG_COLORS = [
+  '#000000','#0d0d0d','#111111','#0f0f14','#050d1a','#060d06',
+  '#14080a','#0a0a14','#101010','#0c0c0c','#181818','#0d0d10',
+];
+
+const ACCENT_COLORS = [
+  '#60a5fa','#f472b6','#fb923c','#facc15','#86efac',
+  '#67e8f9','#a78bfa','#f87171','#34d399','#e879f9',
+];
+
+// ════════════════════════════════════════════════════════════════════════════
+// PERSISTENCE
+// ════════════════════════════════════════════════════════════════════════════
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(DB_KEY);
+    if (raw) state = { ...state, ...JSON.parse(raw) };
+  } catch(e) { console.error('loadState:', e); }
+}
+
+function saveState() {
+  try { localStorage.setItem(DB_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+let saveTimer = null;
+function debouncedSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveState, 800);
+}
+
+function uuid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// THEME
+// ════════════════════════════════════════════════════════════════════════════
+
+function applyTheme() {
+  const s = state.settings;
+  const root = document.documentElement;
+  root.style.setProperty('--bg', s.bgColor);
+  // Derive bg2/bg3 from bg
+  root.style.setProperty('--bg2', lighten(s.bgColor, 0.05));
+  root.style.setProperty('--bg3', lighten(s.bgColor, 0.09));
+  root.style.setProperty('--surface', lighten(s.bgColor, 0.13));
+  root.style.setProperty('--accent', s.accentColor);
+  root.style.setProperty('--accent-dim', s.accentColor + '1a');
+  root.style.setProperty('--accent-border', s.accentColor + '44');
+  root.style.setProperty('--font', s.fontFamily === 'serif' ? "'Georgia',serif"
+    : s.fontFamily === 'mono' ? "'Courier New',monospace" : "system-ui,sans-serif");
+  root.style.setProperty('--font-size', s.fontSize + 'px');
+  root.style.setProperty('--line-height', s.lineHeight);
+  document.getElementById('meta-theme').content = s.bgColor;
+  document.getElementById('font-size-display').textContent = s.fontSize + 'px';
+  document.getElementById('line-height-display').textContent = s.lineHeight.toFixed(1);
+  // Haptic toggle
+  const ht = document.getElementById('haptic-toggle');
+  if (ht) { ht.textContent = s.haptics ? 'ON' : 'OFF'; ht.classList.toggle('active', s.haptics); }
+}
+
+function lighten(hex, amount) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  const t = Math.round;
+  return '#' + [t(r+(255-r)*amount),t(g+(255-g)*amount),t(b+(255-b)*amount)]
+    .map(v=>Math.min(255,v).toString(16).padStart(2,'0')).join('');
+}
+
+function buildBgPalette() {
+  const grid = document.getElementById('bg-palette');
+  grid.innerHTML = BG_COLORS.map(c =>
+    `<div class="palette-swatch${c===state.settings.bgColor?' selected':''}" style="background:${c}"
+      onclick="setBg('${c}')"></div>`
+  ).join('');
+}
+
+function buildAccentPalette() {
+  const grid = document.getElementById('accent-palette');
+  grid.innerHTML = ACCENT_COLORS.map(c =>
+    `<div class="palette-swatch${c===state.settings.accentColor?' selected':''}" style="background:${c}"
+      onclick="setAccent('${c}')"></div>`
+  ).join('');
+}
+
+function buildFontFamilyGrid() {
+  const g = document.getElementById('font-family-grid');
+  const fonts = [{id:'serif',label:'Serif'},{id:'sans',label:'Sans'},{id:'mono',label:'Mono'}];
+  g.innerHTML = fonts.map(f =>
+    `<button class="btn btn-surface${state.settings.fontFamily===f.id?' btn-accent':''}" style="flex:1;font-size:.8em"
+      onclick="setFont('${f.id}')">${f.label}</button>`
+  ).join('');
+}
+
+function setBg(c) { state.settings.bgColor=c; applyTheme(); buildBgPalette(); debouncedSave(); }
+function setAccent(c) { state.settings.accentColor=c; applyTheme(); buildAccentPalette(); debouncedSave(); }
+function setFont(f) { state.settings.fontFamily=f; applyTheme(); buildFontFamilyGrid(); debouncedSave(); }
+function adjustFontSize(d) {
+  state.settings.fontSize = Math.max(12, Math.min(24, state.settings.fontSize + d));
+  applyTheme(); debouncedSave();
+}
+function adjustLineHeight(d) {
+  state.settings.lineHeight = Math.max(1.3, Math.min(2.5, +(state.settings.lineHeight + d).toFixed(1)));
+  applyTheme(); debouncedSave();
+}
+function toggleHaptics() { state.settings.haptics = !state.settings.haptics; applyTheme(); debouncedSave(); }
+
+// ════════════════════════════════════════════════════════════════════════════
+// HAPTICS
+// ════════════════════════════════════════════════════════════════════════════
+
+function haptic(type='light') {
+  if (!state.settings.haptics) return;
+  if (navigator.vibrate) {
+    navigator.vibrate(type==='light'?8:type==='medium'?18:30);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════════════════════════════════
+
+let toastTimer = null;
+function toast(msg, duration=2200) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), duration);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════════════════════════
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+let activeSheet = null;
+
+function openSheet(id) {
+  closeSheet(false);
+  const sheet = document.getElementById(id);
+  if (!sheet) return;
+  // Populate sheets before opening
+  if (id === 'sheet-lorebook') renderLorebook();
+  if (id === 'sheet-story-settings') populateStorySettings();
+  if (id === 'sheet-app-settings') { buildBgPalette(); buildAccentPalette(); buildFontFamilyGrid(); applyTheme(); }
+  if (id === 'sheet-memory') document.getElementById('memory-textarea').value = currentStory?.memory || '';
+  if (id === 'sheet-an') {
+    document.getElementById('an-textarea').value = currentStory?.authorNote || '';
+    document.getElementById('an-depth-input').value = currentStory?.anDepth ?? 4;
+  }
+  if (id === 'sheet-new-story') buildNewStorySheet();
+  if (id === 'sheet-apikey') document.getElementById('apikey-input').value = state.apiKey;
+
+  sheet.classList.add('open');
+  document.getElementById('backdrop').classList.add('show');
+  activeSheet = id;
+}
+
+function closeSheet(clearActive=true) {
+  if (activeSheet) {
+    document.getElementById(activeSheet)?.classList.remove('open');
+    if (clearActive) {
+      document.getElementById('backdrop').classList.remove('show');
+      activeSheet = null;
+    }
+  }
+}
+
+function openDrawer() {
+  haptic('light');
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('backdrop').classList.add('show');
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('backdrop').classList.remove('show');
+}
+
+document.getElementById('backdrop').addEventListener('click', () => {
+  if (document.getElementById('drawer').classList.contains('open')) {
+    closeDrawer();
+  } else {
+    closeSheet();
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// API KEY
+// ════════════════════════════════════════════════════════════════════════════
+
+function saveApiKey() {
+  const key = document.getElementById('setup-key-input').value.trim();
+  if (!key) { toast('Please enter your API key'); return; }
+  state.apiKey = key;
+  saveState();
+  showHome();
+}
+
+function updateApiKey() {
+  const key = document.getElementById('apikey-input').value.trim();
+  if (!key) { toast('Key cannot be empty'); return; }
+  state.apiKey = key;
+  saveState();
+  closeSheet();
+  toast('API key updated');
+}
+
+function showApiKeySheet() {
+  closeDrawer();
+  openSheet('sheet-apikey');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// HOME SCREEN
+// ════════════════════════════════════════════════════════════════════════════
+
+function showHome() {
+  currentStory = null;
+  renderHome();
+  showScreen('screen-home');
+}
+
+function goHome() {
+  closeDrawer();
+  showHome();
+}
+
+function renderHome() {
+  const list = document.getElementById('home-list');
+  if (state.stories.length === 0) {
+    list.innerHTML = `<div class="home-empty">
+      <div class="home-empty-icon">📖</div>
+      <div>No stories yet</div>
+      <button class="btn btn-accent" style="margin-top:8px" onclick="openSheet('sheet-new-story')">Create your first story</button>
+    </div>`;
+    return;
+  }
+  const sorted = [...state.stories].sort((a,b) => b.updatedAt - a.updatedAt);
+  list.innerHTML = sorted.map(s => {
+    const genre = GENRES.find(g => g.id === s.genre) || GENRES[0];
+    const preview = s.turns.length > 0 ? s.turns[s.turns.length-1].text.slice(0,90) : 'No content yet';
+    const date = new Date(s.updatedAt).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+    return `<div class="story-card" onclick="openStory('${s.id}')">
+      <div class="story-card-header">
+        <div class="story-card-title">${esc(s.title)}</div>
+        <div class="story-card-genre">${genre.icon} ${genre.label}</div>
+      </div>
+      <div class="story-card-meta">${date} · ${s.turns.length} turn${s.turns.length!==1?'s':''}</div>
+      <div class="story-card-preview">${esc(preview)}</div>
+      <div class="story-card-actions" onclick="event.stopPropagation()">
+        <button onclick="renameStory('${s.id}')">✏️ Rename</button>
+        <button onclick="duplicateStory('${s.id}')">⧉ Duplicate</button>
+        <button onclick="exportStoryById('${s.id}','txt')" style="color:var(--accent)">💾 Export</button>
+        <button onclick="confirmDeleteStory('${s.id}')" style="color:var(--danger)">🗑 Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function buildNewStorySheet() {
+  selectedNsGenre = 'fantasy';
+  const gg = document.getElementById('ns-genre-grid');
+  gg.innerHTML = GENRES.map(g =>
+    `<button class="cat-btn${g.id===selectedNsGenre?' selected':''}" onclick="selectNsGenre('${g.id}')">${g.icon} ${g.label}</button>`
+  ).join('');
+  document.getElementById('ns-title').value = '';
+  document.getElementById('ns-opening').value = '';
+}
+
+function selectNsGenre(id) {
+  selectedNsGenre = id;
+  document.querySelectorAll('#ns-genre-grid .cat-btn').forEach(b => b.classList.remove('selected'));
+  event.target.classList.add('selected');
+}
+
+function createStory() {
+  const title = document.getElementById('ns-title').value.trim() || 'Untitled Story';
+  const opening = document.getElementById('ns-opening').value.trim();
+  const story = {
+    id: uuid(),
+    title,
+    genre: selectedNsGenre,
+    turns: [],
+    memory: '',
+    authorNote: '',
+    anDepth: 4,
+    lorebook: [],
+    settings: { model:'kayra-v1', temperature:1.0, maxTokens:150, repPenalty:2.8, contextSize:4096 },
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  if (opening) {
+    story.turns.push({ id:uuid(), type:'ai', text:opening, ts:Date.now() });
+  }
+  state.stories.push(story);
+  saveState();
+  closeSheet();
+  openStory(story.id);
+}
+
+function openStory(id) {
+  currentStory = state.stories.find(s => s.id === id);
+  if (!currentStory) return;
+  currentMode = currentStory.mode || 'explore';
+  updateModeChip();
+  document.getElementById('story-title-display').textContent = currentStory.title;
+  document.getElementById('drawer-story-name').textContent = currentStory.title;
+  renderStory();
+  showScreen('screen-story');
+  setTimeout(scrollToBottom, 100);
+}
+
+function renameStory(id) {
+  const s = state.stories.find(x => x.id === id);
+  if (!s) return;
+  const name = prompt('Rename story:', s.title);
+  if (name && name.trim()) {
+    s.title = name.trim();
+    s.updatedAt = Date.now();
+    saveState();
+    renderHome();
+  }
+}
+
+function duplicateStory(id) {
+  const s = state.stories.find(x => x.id === id);
+  if (!s) return;
+  const copy = JSON.parse(JSON.stringify(s));
+  copy.id = uuid();
+  copy.title = s.title + ' (copy)';
+  copy.createdAt = copy.updatedAt = Date.now();
+  state.stories.push(copy);
+  saveState();
+  renderHome();
+  toast('Story duplicated');
+}
+
+function confirmDeleteStory(id) {
+  if (!confirm('Delete this story? This cannot be undone.')) return;
+  state.stories = state.stories.filter(s => s.id !== id);
+  saveState();
+  renderHome();
+  haptic('medium');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// STORY RENDERING
+// ════════════════════════════════════════════════════════════════════════════
+
+function renderStory() {
+  const content = document.getElementById('story-content');
+  content.innerHTML = currentStory.turns.map(t => renderTurn(t)).join('');
+  updateCtxBar();
+}
+
+function renderTurn(t) {
+  const cls = t.type === 'user' ? 'turn-user' : 'turn-ai';
+  return `<div class="turn ${cls}" id="turn-${t.id}"
+    data-id="${t.id}"
+    ontouchstart="startLongPress('${t.id}')"
+    ontouchend="cancelLongPress()"
+    ontouchmove="cancelLongPress()"
+  >${esc(t.text).replace(/\n/g,'<br>')}</div>`;
+}
+
+function scrollToBottom(smooth=false) {
+  const el = document.getElementById('story-scroll');
+  el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'instant' });
+  document.getElementById('scroll-bottom-btn').classList.remove('show');
+}
+
+document.getElementById('story-scroll').addEventListener('scroll', function() {
+  const el = this;
+  const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  document.getElementById('scroll-bottom-btn').classList.toggle('show', !atBottom);
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// LONG PRESS
+// ════════════════════════════════════════════════════════════════════════════
+
+let longPressTimer = null;
+
+function startLongPress(id) {
+  longPressTimer = setTimeout(() => {
+    haptic('medium');
+    activeTurnId = id;
+    openSheet('sheet-action');
+  }, 500);
+}
+
+function cancelLongPress() {
+  clearTimeout(longPressTimer);
+}
+
+function actionEdit() {
+  closeSheet(false);
+  const t = currentStory.turns.find(x => x.id === activeTurnId);
+  if (!t) return;
+  editingTurnId = activeTurnId;
+  document.getElementById('edit-textarea').value = t.text;
+  openSheet('sheet-edit');
+}
+
+function saveEdit() {
+  const t = currentStory.turns.find(x => x.id === editingTurnId);
+  if (!t) return;
+  t.text = document.getElementById('edit-textarea').value;
+  t.ts = Date.now();
+  currentStory.updatedAt = Date.now();
+  debouncedSave();
+  closeSheet();
+  renderStory();
+  toast('Turn updated');
+}
+
+function actionRetry() {
+  closeSheet();
+  const idx = currentStory.turns.findIndex(t => t.id === activeTurnId);
+  if (idx < 0) return;
+  // Remove this turn and everything after
+  currentStory.turns.splice(idx);
+  currentStory.updatedAt = Date.now();
+  debouncedSave();
+  renderStory();
+  // Generate from context up to here
+  sendToApi();
+}
+
+function actionCopy() {
+  const t = currentStory.turns.find(x => x.id === activeTurnId);
+  if (!t) return;
+  navigator.clipboard?.writeText(t.text).then(() => toast('Copied')).catch(() => toast('Copy failed'));
+  closeSheet();
+}
+
+function actionDelete() {
+  if (!confirm('Delete this turn?')) return;
+  currentStory.turns = currentStory.turns.filter(t => t.id !== activeTurnId);
+  currentStory.updatedAt = Date.now();
+  debouncedSave();
+  closeSheet();
+  renderStory();
+  toast('Turn deleted');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// MODE & QUICK ACTIONS
+// ════════════════════════════════════════════════════════════════════════════
+
+function cycleMode() {
+  haptic('light');
+  const idx = MODES.findIndex(m => m.id === currentMode);
+  currentMode = MODES[(idx+1) % MODES.length].id;
+  if (currentStory) currentStory.mode = currentMode;
+  updateModeChip();
+  debouncedSave();
+}
+
+function updateModeChip() {
+  const m = MODES.find(x => x.id === currentMode) || MODES[0];
+  document.getElementById('mode-icon').textContent = m.icon;
+  document.getElementById('mode-label').textContent = m.label;
+}
+
+function toggleQuickActions() {
+  quickActionsOpen = !quickActionsOpen;
+  document.getElementById('quick-actions').classList.toggle('open', quickActionsOpen);
+  document.getElementById('btn-qa').textContent = quickActionsOpen ? '⊖' : '⊕';
+}
+
+function quickAction(text) {
+  haptic('light');
+  const input = document.getElementById('story-input');
+  input.textContent = text;
+  onInputChange();
+  toggleQuickActions();
+  handleSend();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// INPUT
+// ════════════════════════════════════════════════════════════════════════════
+
+function onInputChange() {
+  const input = document.getElementById('story-input');
+  const text = input.textContent;
+  // Token hint (rough estimate)
+  const tokens = Math.round(text.length / 4);
+  document.getElementById('token-hint').textContent = tokens > 0 ? `~${tokens} tok` : '';
+}
+
+function onInputKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    handleSend();
+  }
+}
+
+function getInputText() {
+  return document.getElementById('story-input').textContent.trim();
+}
+
+function clearInput() {
+  document.getElementById('story-input').textContent = '';
+  document.getElementById('token-hint').textContent = '';
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SEND / UNDO / RETRY
+// ════════════════════════════════════════════════════════════════════════════
+
+async function handleSend() {
+  if (generating) { stopGeneration(); return; }
+  const text = getInputText();
+  if (!text || !currentStory) return;
+  haptic('light');
+  // Add user turn
+  const userTurn = { id:uuid(), type:'user', text, ts:Date.now() };
+  currentStory.turns.push(userTurn);
+  currentStory.updatedAt = Date.now();
+  clearInput();
+  renderStory();
+  scrollToBottom();
+  await sendToApi();
+}
+
+function undoTurn() {
+  if (generating || !currentStory || currentStory.turns.length === 0) return;
+  haptic('medium');
+  // Remove last AI turn + last user turn (full turn pair)
+  let removed = 0;
+  while (currentStory.turns.length > 0 && removed < 2) {
+    const last = currentStory.turns[currentStory.turns.length-1];
+    currentStory.turns.pop();
+    removed++;
+    if (last.type === 'user') break; // Stop after removing user turn
+  }
+  currentStory.updatedAt = Date.now();
+  debouncedSave();
+  renderStory();
+  toast('Turn undone');
+}
+
+function retryLast() {
+  if (generating || !currentStory || currentStory.turns.length === 0) return;
+  haptic('medium');
+  // Remove last AI turn only
+  const last = currentStory.turns[currentStory.turns.length-1];
+  if (last.type === 'ai') currentStory.turns.pop();
+  currentStory.updatedAt = Date.now();
+  debouncedSave();
+  renderStory();
+  sendToApi();
+}
+
+function stopGeneration() {
+  stopFlag = true;
+  activeReader = null;
+  generating = false;
+  setGeneratingUI(false);
+  const st = document.getElementById('streaming-turn');
+  st.style.display = 'none';
+  st.innerHTML = '';
+  toast('Generation stopped');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// CONTEXT BUILDING
+// ════════════════════════════════════════════════════════════════════════════
+
+function buildContext() {
+  const s = currentStory;
+  const contextSize = s.settings.contextSize || 4096;
+  const charBudget = contextSize * 3.8; // rough chars per token
+  const parts = [];
+
+  // Memory
+  if (s.memory?.trim()) {
+    parts.push(`[ Memory ]\n${s.memory.trim()}\n`);
+  }
+
+  // Lorebook entries (keyword match against recent text)
+  const recentText = s.turns.slice(-6).map(t => t.text).join(' ');
+  const matchedEntries = getMatchingLbEntries(recentText);
+  if (matchedEntries.length > 0) {
+    parts.push(matchedEntries.map(e => `[ ${e.name} ]\n${e.content}`).join('\n\n'));
+  }
+
+  // Story turns - assemble with AN insertion
+  const anDepth = s.anDepth ?? 4;
+  const anText = s.authorNote?.trim();
+  const turns = s.turns;
+
+  // Build turn lines
+  const turnLines = turns.map(t => {
+    if (t.type === 'user') return `\n> ${t.text}\n`;
+    return `\n${t.text}`;
+  });
+
+  // Insert AN at anDepth turns from end
+  if (anText && turns.length > 0) {
+    const insertIdx = Math.max(0, turnLines.length - anDepth);
+    turnLines.splice(insertIdx, 0, `\n[ Author Note: ${anText} ]\n`);
+  }
+
+  const storyText = turnLines.join('');
+  parts.push(storyText);
+
+  // Trim to budget
+  let fullContext = parts.join('\n\n');
+  if (fullContext.length > charBudget) {
+    // Keep memory + lorebook, trim story from the beginning
+    const headerLen = (parts[0]?.length || 0) + (matchedEntries.length > 0 ? parts[1]?.length || 0 : 0) + 100;
+    const storyBudget = charBudget - headerLen;
+    const trimmedStory = storyText.slice(-Math.max(storyBudget, 500));
+    fullContext = parts.slice(0, parts.length - 1).join('\n\n') + '\n\n[...]\n' + trimmedStory;
+  }
+
+  return fullContext;
+}
+
+function getMatchingLbEntries(text) {
+  if (!currentStory?.lorebook) return [];
+  const lower = text.toLowerCase();
+  const matched = [];
+  for (const entry of currentStory.lorebook) {
+    if (!entry.enabled) continue;
+    const hits = (entry.keywords || []).some(k => k.trim().length > 1 && lower.includes(k.trim().toLowerCase()));
+    if (hits) matched.push(entry);
+    if (matched.length >= 4) break;
+  }
+  return matched;
+}
+
+function updateCtxBar() {
+  if (!currentStory) return;
+  const ctx = buildContext();
+  const estimate = ctx.length / 3.8 / (currentStory.settings.contextSize || 4096);
+  const fill = document.getElementById('ctx-fill');
+  fill.style.width = Math.min(100, estimate * 100) + '%';
+  fill.className = 'fill' + (estimate > 0.9 ? ' full' : estimate > 0.75 ? ' warn' : '');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// GENERATION (NAI API)
+// ════════════════════════════════════════════════════════════════════════════
+
+function setGeneratingUI(on) {
+  const btn = document.getElementById('btn-send');
+  const input = document.getElementById('story-input');
+  btn.textContent = on ? '■' : '▶';
+  btn.classList.toggle('generating', on);
+  input.contentEditable = on ? 'false' : 'true';
+  document.getElementById('btn-undo').style.opacity = on ? '.3' : '1';
+  document.getElementById('btn-retry').style.opacity = on ? '.3' : '1';
+  // Dim input area
+  document.getElementById('story-input').style.opacity = on ? '.4' : '1';
+  if (on) {
+    const pulseDot = document.createElement('span');
+    pulseDot.id = 'gen-dot';
+    pulseDot.textContent = ' ●';
+    pulseDot.className = 'pulsing';
+    pulseDot.style.cssText = 'color:var(--accent);font-size:.6em;vertical-align:middle';
+    document.getElementById('story-title-display').appendChild(pulseDot);
+  } else {
+    document.getElementById('gen-dot')?.remove();
+  }
+}
+
+async function sendToApi() {
+  if (!state.apiKey) { toast('No API key — tap ☰ → API Key'); return; }
+  if (generating) return;
+
+  generating = true;
+  stopFlag = false;
+  activeReader = null;
+  abortController = null;
+  setGeneratingUI(true);
+
+  // Show loading indicator in story area
+  const streaming = document.getElementById('streaming-turn');
+  streaming.style.display = 'block';
+  streaming.innerHTML = '<span class="pulsing" style="color:var(--accent);font-size:.85em">●●●</span>';
+  streaming.classList.remove('turn-streaming');
+  scrollToBottom();
+
+  const context = buildContext();
+  const settings = currentStory.settings;
+
+  const payload = {
+    input: context,
+    model: settings.model || 'kayra-v1',
+    parameters: {
+      use_string: true,
+      return_full_text: false,
+      max_new_tokens: settings.maxTokens || 150,
+      min_new_tokens: 1,
+      temperature: settings.temperature || 1.0,
+      repetition_penalty: settings.repPenalty || 2.8,
+      repetition_penalty_range: 2048,
+      top_k: 0,
+      top_p: 1,
+      top_a: 0.08,
+      typical_p: 1,
+      tail_free_sampling: 0.915,
+      repetition_penalty_frequency: 0,
+      repetition_penalty_presence: 0,
+      generate_until_sentence: true,
+      use_cache: false,
+      return_full_text: false,
+      prefix: 'vanilla',
+    }
+  };
+
+  let generated = '';
+
+  try {
+    // 90-second timeout
+    const timeoutId = setTimeout(() => { stopFlag = true; }, 90000);
+
+    const response = await fetch('https://api.novelai.net/ai/generate', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${state.apiKey}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      let errText = '';
+      try { errText = await response.text(); } catch {}
+      // Try to parse NAI error format
+      try {
+        const errJson = JSON.parse(errText);
+        errText = errJson.message || errText;
+      } catch {}
+      throw new Error(`API ${response.status}: ${errText.slice(0,120)}`);
+    }
+
+    if (stopFlag) throw new Error('Cancelled');
+
+    const data = await response.json();
+    // NAI returns { output: "text" }
+    generated = (data.output || data.text || '').trim();
+
+  } catch(e) {
+    if (!stopFlag) {
+      console.error('generate:', e);
+      const msg = e.message || String(e);
+      toast(msg.length > 80 ? msg.slice(0,80) + '…' : msg);
+    }
+  }
+
+  // Finalize
+  activeReader = null;
+  abortController = null;
+  streaming.style.display = 'none';
+  streaming.innerHTML = '';
+
+  if (generated && !stopFlag) {
+    const aiTurn = { id:uuid(), type:'ai', text:generated, ts:Date.now() };
+    currentStory.turns.push(aiTurn);
+    currentStory.updatedAt = Date.now();
+    debouncedSave();
+    renderStory();
+    scrollToBottom(true);
+    haptic('medium');
+  }
+
+  generating = false;
+  stopFlag = false;
+  activeReader = null;
+  abortController = null;
+  setGeneratingUI(false);
+  updateCtxBar();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// MEMORY / AN
+// ════════════════════════════════════════════════════════════════════════════
+
+function saveMemory() {
+  if (!currentStory) { closeSheet(); return; }
+  currentStory.memory = document.getElementById('memory-textarea').value;
+  currentStory.updatedAt = Date.now();
+  debouncedSave();
+  closeSheet();
+  toast('Memory saved');
+}
+
+function saveAN() {
+  if (!currentStory) { closeSheet(); return; }
+  currentStory.authorNote = document.getElementById('an-textarea').value;
+  currentStory.anDepth = parseInt(document.getElementById('an-depth-input').value) || 4;
+  currentStory.updatedAt = Date.now();
+  debouncedSave();
+  closeSheet();
+  toast("Author's Note saved");
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// LOREBOOK
+// ════════════════════════════════════════════════════════════════════════════
+
+function renderLorebook() {
+  const body = document.getElementById('lorebook-body');
+  if (!currentStory) { body.innerHTML = '<p class="txt-dim">No story open.</p>'; return; }
+
+  const lb = currentStory.lorebook || [];
+  if (lb.length === 0) {
+    body.innerHTML = `<div style="text-align:center;padding:24px 0;color:var(--text3)">
+      <div style="font-size:2em;margin-bottom:8px">📚</div>
+      <div style="font-size:.85em">No entries yet.</div>
+      <button class="btn btn-accent" style="margin-top:12px" onclick="openNewLbEntry()">+ Add Entry</button>
+    </div>`;
+    return;
+  }
+
+  // Group by category
+  const groups = {};
+  for (const cat of LB_CATEGORIES) groups[cat.id] = [];
+  for (const entry of lb) {
+    const cat = entry.category || 'other';
+    if (groups[cat]) groups[cat].push(entry);
+    else groups['other'].push(entry);
+  }
+
+  body.innerHTML = LB_CATEGORIES.map(cat => {
+    const entries = groups[cat.id];
+    if (entries.length === 0) return '';
+    return `<div class="lb-category">
+      <div class="lb-cat-title"><span class="lb-cat-icon">${cat.icon}</span>${cat.label} (${entries.length})</div>
+      ${entries.map(e => `
+        <div class="lb-entry" onclick="editLbEntry('${e.id}')">
+          <div class="lb-entry-main">
+            <div class="lb-entry-name">${esc(e.name)}</div>
+            <div class="lb-entry-keys">${(e.keywords||[]).join(', ')}</div>
+          </div>
+          <div class="lb-entry-toggle${e.enabled?' on':''}" onclick="toggleLbEntry(event,'${e.id}')"></div>
+        </div>
+      `).join('')}
+    </div>`;
+  }).join('');
+}
+
+function toggleLbEntry(event, id) {
+  event.stopPropagation();
+  if (!currentStory) return;
+  const entry = currentStory.lorebook.find(e => e.id === id);
+  if (!entry) return;
+  entry.enabled = !entry.enabled;
+  currentStory.updatedAt = Date.now();
+  debouncedSave();
+  renderLorebook();
+}
+
+function openNewLbEntry() {
+  editingLbId = null;
+  selectedLbCat = 'character';
+  document.getElementById('lb-edit-title').textContent = 'New Entry';
+  document.getElementById('lb-edit-id').value = '';
+  document.getElementById('lb-name').value = '';
+  document.getElementById('lb-keywords').value = '';
+  document.getElementById('lb-content').value = '';
+  document.getElementById('lb-delete-btn').style.display = 'none';
+  buildLbCatGrid();
+  openSheet('sheet-lb-edit');
+}
+
+function editLbEntry(id) {
+  if (!currentStory) return;
+  const entry = currentStory.lorebook.find(e => e.id === id);
+  if (!entry) return;
+  editingLbId = id;
+  selectedLbCat = entry.category || 'character';
+  document.getElementById('lb-edit-title').textContent = 'Edit Entry';
+  document.getElementById('lb-edit-id').value = id;
+  document.getElementById('lb-name').value = entry.name || '';
+  document.getElementById('lb-keywords').value = (entry.keywords||[]).join(', ');
+  document.getElementById('lb-content').value = entry.content || '';
+  document.getElementById('lb-delete-btn').style.display = '';
+  buildLbCatGrid();
+  openSheet('sheet-lb-edit');
+}
+
+function buildLbCatGrid() {
+  document.getElementById('lb-cat-grid').innerHTML = LB_CATEGORIES.map(c =>
+    `<button class="cat-btn${c.id===selectedLbCat?' selected':''}" onclick="selectLbCat('${c.id}')">${c.icon} ${c.label}</button>`
+  ).join('');
+}
+
+function selectLbCat(id) {
+  selectedLbCat = id;
+  buildLbCatGrid();
+}
+
+function saveLbEntry() {
+  if (!currentStory) return;
+  const name = document.getElementById('lb-name').value.trim();
+  if (!name) { toast('Name is required'); return; }
+  const keywords = document.getElementById('lb-keywords').value.split(',').map(k=>k.trim()).filter(Boolean);
+  const content = document.getElementById('lb-content').value.trim();
+
+  if (editingLbId) {
+    const entry = currentStory.lorebook.find(e => e.id === editingLbId);
+    if (entry) { entry.name=name; entry.category=selectedLbCat; entry.keywords=keywords; entry.content=content; }
+  } else {
+    currentStory.lorebook.push({ id:uuid(), name, category:selectedLbCat, keywords, content, enabled:true });
+  }
+  currentStory.updatedAt = Date.now();
+  debouncedSave();
+  openSheet('sheet-lorebook');
+  toast(editingLbId ? 'Entry updated' : 'Entry added');
+}
+
+function deleteLbEntry() {
+  if (!currentStory || !editingLbId) return;
+  if (!confirm('Delete this entry?')) return;
+  currentStory.lorebook = currentStory.lorebook.filter(e => e.id !== editingLbId);
+  currentStory.updatedAt = Date.now();
+  debouncedSave();
+  openSheet('sheet-lorebook');
+  toast('Entry deleted');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// STORY SETTINGS
+// ════════════════════════════════════════════════════════════════════════════
+
+function populateStorySettings() {
+  if (!currentStory) return;
+  const ss = currentStory.settings;
+  document.getElementById('ss-title').value = currentStory.title;
+
+  // Genre grid
+  selectedGenre = currentStory.genre;
+  document.getElementById('ss-genre-grid').innerHTML = GENRES.map(g =>
+    `<button class="cat-btn${g.id===selectedGenre?' selected':''}" onclick="selectGenre('${g.id}')">${g.icon} ${g.label}</button>`
+  ).join('');
+
+  // Model grid
+  document.getElementById('ss-model-grid').innerHTML = MODELS.map(m =>
+    `<button class="cat-btn${ss.model===m.id?' selected':''}" style="flex:1;flex-direction:column;padding:6px 4px"
+      onclick="selectModel('${m.id}')">
+      <span style="font-weight:700;font-size:.8em">${m.label}</span>
+      <span style="font-size:.66em;opacity:.5;margin-top:2px">${m.desc}</span>
+    </button>`
+  ).join('');
+
+  document.getElementById('ss-temp').value = ss.temperature || 1;
+  document.getElementById('ss-temp-val').textContent = (ss.temperature||1).toFixed(2);
+  document.getElementById('ss-tokens').value = ss.maxTokens || 150;
+  document.getElementById('ss-tokens-val').textContent = ss.maxTokens || 150;
+  document.getElementById('ss-rep').value = ss.repPenalty || 2.8;
+  document.getElementById('ss-rep-val').textContent = (ss.repPenalty||2.8).toFixed(1);
+
+  // Context size
+  const ctxOptions = [2048,4096,8192];
+  document.getElementById('ss-ctx-grid').innerHTML = ctxOptions.map(c =>
+    `<button class="cat-btn${ss.contextSize===c?' selected':''}" style="flex:1" onclick="selectCtx(${c})">${c}</button>`
+  ).join('');
+}
+
+function selectGenre(id) {
+  selectedGenre = id;
+  document.querySelectorAll('#ss-genre-grid .cat-btn').forEach(b => b.classList.remove('selected'));
+  event.target.classList.add('selected');
+}
+
+function selectModel(id) {
+  document.querySelectorAll('#ss-model-grid .cat-btn').forEach(b => b.classList.remove('selected'));
+  event.target.classList.add('selected');
+  event.target._modelId = id;
+  // Store on element for retrieval
+  document.querySelectorAll('#ss-model-grid .cat-btn').forEach(b => b.dataset.selected = b.classList.contains('selected') ? id : '');
+  currentStory.settings._selectedModel = id;
+}
+
+function selectCtx(c) {
+  document.querySelectorAll('#ss-ctx-grid .cat-btn').forEach(b => b.classList.remove('selected'));
+  event.target.classList.add('selected');
+  event.target._ctx = c;
+  currentStory.settings._selectedCtx = c;
+}
+
+function saveStorySettings() {
+  if (!currentStory) { closeSheet(); return; }
+  const title = document.getElementById('ss-title').value.trim();
+  if (title) {
+    currentStory.title = title;
+    document.getElementById('story-title-display').textContent = title;
+    document.getElementById('drawer-story-name').textContent = title;
+  }
+  currentStory.genre = selectedGenre;
+  const selectedModelEl = document.querySelector('#ss-model-grid .cat-btn.selected');
+  if (currentStory.settings._selectedModel) currentStory.settings.model = currentStory.settings._selectedModel;
+  if (currentStory.settings._selectedCtx) currentStory.settings.contextSize = currentStory.settings._selectedCtx;
+  currentStory.settings.temperature = parseFloat(document.getElementById('ss-temp').value);
+  currentStory.settings.maxTokens = parseInt(document.getElementById('ss-tokens').value);
+  currentStory.settings.repPenalty = parseFloat(document.getElementById('ss-rep').value);
+  currentStory.updatedAt = Date.now();
+  debouncedSave();
+  closeSheet();
+  toast('Settings saved');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// EXPORT
+// ════════════════════════════════════════════════════════════════════════════
+
+function exportStory(format) {
+  if (!currentStory) { toast('No story open'); return; }
+  exportStoryById(currentStory.id, format);
+  closeSheet();
+}
+
+function exportStoryById(id, format) {
+  const story = state.stories.find(s => s.id === id);
+  if (!story) return;
+  const filename = story.title.replace(/[^a-z0-9]/gi,'_').toLowerCase();
+
+  if (format === 'txt') {
+    const text = story.turns.map(t =>
+      t.type === 'user' ? `> ${t.text}` : t.text
+    ).join('\n\n');
+    download(`${filename}.txt`, text, 'text/plain');
+  } else {
+    download(`${filename}.json`, JSON.stringify(story, null, 2), 'application/json');
+  }
+  toast('Exported!');
+}
+
+function download(name, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// KEYBOARD AVOIDANCE (Visual Viewport API)
+// ════════════════════════════════════════════════════════════════════════════
+
+function setupViewport() {
+  if (!window.visualViewport) return;
+  function onResize() {
+    const vv = window.visualViewport;
+    const keyboardH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    document.getElementById('input-area').style.paddingBottom =
+      keyboardH > 0 ? keyboardH + 'px' : 'var(--safe-bottom)';
+    if (keyboardH > 0) scrollToBottom();
+  }
+  window.visualViewport.addEventListener('resize', onResize);
+  window.visualViewport.addEventListener('scroll', onResize);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════════════════
+
+function init() {
+  loadState();
+  applyTheme();
+  setupViewport();
+
+  // Swipe right to open drawer
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive:true });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (dx > 60 && touchStartX < 30 && !generating) openDrawer();
+  }, { passive:true });
+
+  if (!state.apiKey) {
+    showScreen('screen-setup');
+  } else {
+    showHome();
+  }
+}
+
+init();
+</script>
+</body>
+</html>
